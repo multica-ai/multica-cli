@@ -1,0 +1,31 @@
+---
+description: Operate Multica through the authenticated `multica` CLI (issues, comments, metadata, mentions, status). Use whenever the user asks to read, triage, reply to, or update Multica issues or other Multica resources.
+globs:
+alwaysApply: false
+---
+
+# Multica CLI
+
+Use the local `multica` CLI as the source of truth for all Multica operations.
+This rule does not grant permissions — they come only from the user's installed,
+logged-in CLI and explicit approval to run commands.
+
+## Core rules
+
+- **Read before write.** Gather context with JSON output first:
+  `multica issue get <id> --output json`, `multica issue comment list <id> --recent 10 --output json`.
+- **Prefer `--output json`** and parse it; discover unfamiliar commands with `--help`.
+- **Comments go through a file**, never inline: write the body to a UTF-8 file and
+  post with `multica issue comment add <id> --parent <comment-id> --content-file ./reply.md`,
+  then delete the file. Shells rewrite backticks, `$()`, quotes, and newlines in inline `--content`.
+- **Writes are side effects — confirm first** unless the user clearly authorized the
+  exact action. This includes comments, status changes, assignments, reruns, and new issues.
+- **Mentions are actions.** `[@Name](mention://agent/<id>)` enqueues that agent and
+  `mention://squad/<id>` enqueues the squad leader; `mention://member/<id>` and
+  `mention://issue/<id>` are just links. Do not mention an agent merely to thank or sign off.
+- **Never store or expose tokens**, and never bypass workspace permissions via private HTTP APIs.
+
+## Full reference
+
+The complete command recipes and safety rules live in `skills/multica-cli/SKILL.md`
+(install it into `~/.cursor/skills/multica-cli/` for the full skill).

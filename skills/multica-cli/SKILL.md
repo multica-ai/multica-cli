@@ -1,6 +1,6 @@
 ---
 name: multica-cli
-description: "Use when Codex or another local coding agent needs to operate Multica through the authenticated `multica` CLI: reading or updating issues, comments, metadata, projects, agents, squads, runtimes, repos, skills, autopilots, attachments, or workspace state; replying to a Multica issue from an external agent; creating or triaging issues; checking linked pull requests; or safely handling Multica mention/status side effects without relying on the Multica hosted agent runtime."
+description: "Use when a local coding agent (Codex, Claude Code, Cursor, or similar) needs to operate Multica through the authenticated `multica` CLI: reading or updating issues, comments, metadata, projects, agents, squads, runtimes, repos, skills, autopilots, attachments, or workspace state; replying to a Multica issue from an external agent; creating or triaging issues; checking linked pull requests; or safely handling Multica mention/status side effects without relying on the Multica hosted agent runtime."
 ---
 
 # Multica CLI
@@ -20,10 +20,20 @@ multica auth status
 multica config show
 ```
 
-2. Use the correct workspace and profile. Prefer explicit flags when the user
-names them:
+If `multica auth status` reports no active session, the CLI is not logged in.
+Stop and have the user authenticate; do not try to fake credentials:
 
 ```bash
+multica login        # interactive auth + workspace setup
+multica setup        # alternative: configure CLI, authenticate, start daemon
+```
+
+2. Use the correct workspace and profile. Discover what is available, then
+prefer explicit flags when the user names them:
+
+```bash
+multica workspace list --output json                 # which workspaces exist
+multica workspace switch <workspace-id>              # set the default for this profile
 multica --profile <profile> --workspace-id <workspace-id> issue list --output json
 ```
 

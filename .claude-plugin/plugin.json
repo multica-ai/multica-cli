@@ -1,0 +1,19 @@
+{
+  "name": "multica-cli",
+  "description": "Teach a local coding agent to operate Multica through the authenticated multica CLI.",
+  "version": "1.0.0",
+  "author": {
+    "name": "multica-ai"
+  },
+  "license": "MIT",
+  "keywords": [
+    "multica",
+    "cli",
+    "issues",
+    "agents",
+    "workflow"
+  ],
+  "skills": [
+    "./skills/multica-cli"
+  ]
+}
