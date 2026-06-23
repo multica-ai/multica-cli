@@ -36,9 +36,9 @@ Comment bodies always go through a file and `--content-file` — never inline
 
 ```bash
 multica issue create --title "Login redirect loops" --description-file ./desc.md
-# look up the assignee id first, then:
+# look up the assignee id first, then assign (note: assign uses --to-id, not --assignee-id):
 multica workspace member list --output json
-multica issue assign <issue-id> --assignee-id <user-id>
+multica issue assign <issue-id> --to-id <user-id>
 ```
 
 ## Check linked pull requests

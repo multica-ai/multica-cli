@@ -37,19 +37,52 @@ multica workspace switch <workspace-id>              # set the default for this 
 multica --profile <profile> --workspace-id <workspace-id> issue list --output json
 ```
 
-3. Discover command shapes with help before using an unfamiliar operation:
-
-```bash
-multica --help
-multica issue --help
-multica issue comment add --help
-```
-
-4. Prefer `--output json` whenever a command supports it. Parse JSON rather than
+3. Prefer `--output json` whenever a command supports it. Parse JSON rather than
 scraping tables.
 
-5. Never expose or store tokens, cookies, API keys, or CLI config secrets. Do
+4. Never expose or store tokens, cookies, API keys, or CLI config secrets. Do
 not bypass workspace permissions by calling private HTTP APIs directly.
+
+## Command Reference
+
+The flags below are the common ones for the issue workflow you will use most.
+You do not need `--help` for these. Run `--help` only to confirm a rejected flag
+or to explore the long-tail namespaces (`project`, `agent`, `squad`, `runtime`,
+`repo`, `skill`, `autopilot`, `attachment`), whose shapes vary and are not
+duplicated here. `[ ]` marks optional flags; `|` marks mutually exclusive ones.
+
+```bash
+# Read
+multica issue get <id> --output json
+multica issue list [--status <s>] [--assignee <name> | --assignee-id <uuid>] [--project <id>] [--priority <p>] [--limit N] [--metadata key=value] --output json
+multica issue children <id> --output json
+multica issue pull-requests <id> --output json
+multica issue metadata list <id> --output json
+
+# Comments (read)
+multica issue comment list <id> --recent N --output json                    # N most active threads
+multica issue comment list <id> --thread <comment-id> [--tail N] --output json  # one thread (root + replies)
+multica issue comment list <id> --roots-only [--summary] --output json       # triage top-level threads
+#   also: --since <RFC3339>, --before/--before-id <cursor> for pagination
+
+# Create / update
+multica issue create --title "..." [--description-file <path>] [--priority <p>] [--status <s>] [--assignee <name> | --assignee-id <uuid>] [--parent <id>] [--stage N] [--project <id>] [--due-date YYYY-MM-DD] [--attachment <path>] --output json
+multica issue update <id> [--title "..."] [--description-file <path>] [--status <s>] [--priority <p>] [--assignee-id <uuid>] [--parent <id> | --parent ""] [--stage N] [--due-date YYYY-MM-DD]
+
+# Status / assignment  (status values: backlog | todo | in_progress | in_review | done | blocked | cancelled)
+multica issue status <id> <status>
+multica issue assign <id> --to <name> | --to-id <uuid> | --unassign
+
+# Comment (write) — body always via file, see Write Workflow below
+multica issue comment add <id> [--parent <comment-id>] --content-file <path> [--attachment <path>]
+
+# Metadata
+multica issue metadata set <id> --key <k> --value <v> [--type string|number|bool]
+multica issue metadata delete <id> --key <k>
+```
+
+Note `issue assign` uses `--to` / `--to-id` (not `--assignee`), while `issue
+create` / `issue update` use `--assignee` / `--assignee-id`.
 
 ## Read Workflow
 
