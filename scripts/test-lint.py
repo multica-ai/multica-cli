@@ -128,12 +128,29 @@ def main() -> int:
         )
 
     # 1d. A value-taking global flag genuinely does consume the next token, so
-    #     that token must NOT be reported as a command.
+    #     that token must NOT be reported as a command. Deliberately no
+    #     resolvable command here: with one (`... issue list`), resolve_path()
+    #     succeeds and the stray-word branch this is meant to pin is never run.
     check(
         "value-taking global flag consumes its argument",
-        run_case(linter, skill_body=block("multica --profile dev issue list --output json") + covered),
+        run_case(linter, skill_body=block("multica --profile dev --version") + covered),
         expect=None,
     )
+
+    # 1e. ...and the same asserted directly, so the branch is pinned even if the
+    #     surrounding fixture changes shape later.
+    root_specs = linter.declared_flag_specs(linter.cli_help(""))
+    direct = [
+        ("multica --profile dev", []),
+        ("multica --debug frobnicate", ["frobnicate"]),
+        ("multica --profile=dev frobnicate", ["frobnicate"]),
+    ]
+    for line, expected in direct:
+        got = linter.stray_words(linter.normalize(line), root_specs)
+        if got == expected:
+            print(f"  ok  stray_words({line!r}) -> {got}")
+        else:
+            failures.append(f"stray_words({line!r}): expected {expected}, got {got}")
 
     # 2. An unknown subcommand must be reported. Cobra prints the *parent's*
     #    help and exits 0 here, so exit status alone would miss it.
