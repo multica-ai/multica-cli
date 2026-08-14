@@ -54,6 +54,7 @@ VERSION_DECLARED_IN = [
 # docs that get copy-pasted just as often, so they rot the same way.
 DOC_FILES = [
     "skills/multica-cli/SKILL.md",
+    "skills/multica-cli/references/orchestration.md",
     "EXAMPLES.md",
     "README.md",
     "README.zh.md",

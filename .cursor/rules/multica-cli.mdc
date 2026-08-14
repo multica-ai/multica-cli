@@ -43,6 +43,9 @@ around the missing flags.
 - **Never store or expose tokens**, and never bypass workspace permissions via private HTTP APIs.
 - **Say when the CLI can't do it.** Name the step and point at Multica Web rather than
   letting a partial run read as a completed one.
+- **Orchestrate open-ended business goals.** Search only relevant workspace resources,
+  synthesize existing context and capabilities, prefer reuse, then present one complete
+  execution plan for confirmation. Follow `references/orchestration.md` for the full flow.
 
 ## Full reference
 

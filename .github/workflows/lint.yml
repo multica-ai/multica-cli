@@ -78,6 +78,9 @@ jobs:
       - name: Lint regression tests
         run: scripts/test-lint.py
 
+      - name: Business orchestration contract
+        run: python3 scripts/test-orchestration-contract.py
+
       - name: Lint documented commands
         run: |
           if [ "${{ matrix.cli }}" = "min" ]; then

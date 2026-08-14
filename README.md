@@ -6,6 +6,8 @@ A portable skill that teaches any local coding agent — Claude Code, Codex, Cur
 and others — how to operate [Multica](https://github.com/multica-ai/multica)
 through the authenticated `multica` CLI: read and triage issues, reply to
 comments safely, manage metadata, and handle mention/status side effects.
+For open-ended goals, it can discover relevant workspace context and
+capabilities so teams reuse existing work instead of rebuilding it.
 
 English | [简体中文](./README.zh.md)
 
@@ -31,6 +33,14 @@ drive Multica safely; it never bypasses workspace permissions or stores secrets.
 - Inspecting run history and token usage; cancelling a run when asked
 - Linking pull requests back to Multica issues
 - Saying so plainly when the CLI cannot do something, instead of faking it
+- Turning open-ended goals into executable plans through targeted workspace
+  discovery
+- Summarizing existing team context and matching available Agent and Skill
+  capabilities
+- Reusing existing work instead of rebuilding it, with sharing-risk checks
+- Presenting the complete business orchestration plan for one confirmation,
+  then executing it in dependency order (Agent and Skill mutations are
+  confirmed separately)
 
 ## Install
 
@@ -85,6 +95,13 @@ Ask your agent to work with Multica once the skill is installed, for example:
 Read MUL-123 with the multica CLI and draft a reply for me to review.
 ```
 
+Or give it an outcome and let it find the relevant workspace context first:
+
+```text
+Find the team's existing data-labeling workflow and capabilities, then propose
+a plan for weekly rainy-day dataset labeling. Execute it after I confirm.
+```
+
 For write operations (comments, status changes, mentions, new issues), the agent
 should ask before making state changes unless you have already clearly
 authorized that exact action. See [EXAMPLES.md](./EXAMPLES.md) for more.
@@ -96,6 +113,7 @@ linted against a real `multica` binary:
 
 ```bash
 scripts/lint-skill-commands.py            # or --verbose to see every check
+python3 scripts/test-orchestration-contract.py
 ```
 
 It fails when a documented command or flag no longer exists, and when a CLI
