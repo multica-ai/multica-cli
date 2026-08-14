@@ -2,6 +2,10 @@
 
 There are two ways to use the Multica CLI skill in Cursor.
 
+Both require the `multica` CLI at **v0.4.26 or newer** — earlier versions lack
+commands the skill and the rule rely on (notably `--no-start`). Check with
+`multica version`.
+
 ## Option 1: Personal Agent Skill (recommended)
 
 Cursor loads skills from `~/.cursor/skills`. Copy the skill there once and it is

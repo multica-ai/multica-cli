@@ -1,0 +1,87 @@
+name: Lint
+
+# A skill that describes a CLI is only correct relative to a CLI version, so the
+# schedule matters as much as the push trigger: the CLI can move under a
+# repository that never changes, and that is exactly how this skill went stale.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skill-commands:
+    name: Docs match the CLI (${{ matrix.cli }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # `min` is the version README/SKILL.md tell users to install, so every
+        # documented command must work there. `latest` catches new drift. Both
+        # have to pass: dropping `min` lets the docs quietly raise the floor,
+        # dropping `latest` lets the CLI move out from under them.
+        cli: [min, latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Resolve CLI version
+        id: resolve
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.cli }}" = "min" ]; then
+            version="v$(python3 -c 'import re,pathlib; print(re.search(r"MIN_CLI_VERSION = \"([^\"]+)\"", pathlib.Path("scripts/lint-skill-commands.py").read_text()).group(1))')"
+          else
+            version="$(curl -fsSL https://api.github.com/repos/multica-ai/multica/releases/latest | jq -r .tag_name)"
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved ${{ matrix.cli }} -> ${version}"
+
+      - name: Install the multica CLI
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          asset="multica-cli-${VERSION#v}-linux-amd64.tar.gz"
+          base="https://github.com/multica-ai/multica/releases/download/${VERSION}"
+          mkdir -p "${RUNNER_TEMP}/multica-cli" "${HOME}/.local/bin"
+          curl -fsSL -o "${RUNNER_TEMP}/${asset}" "${base}/${asset}"
+          curl -fsSL -o "${RUNNER_TEMP}/checksums.txt" "${base}/checksums.txt"
+
+          # Verify before executing a downloaded binary. Anchor the filename to
+          # end-of-line and require exactly one match, so a substring can never
+          # satisfy the check.
+          cd "${RUNNER_TEMP}"
+          matches="$(grep -c -E "[[:space:]]${asset}$" checksums.txt || true)"
+          if [ "${matches}" != "1" ]; then
+            echo "::error::expected exactly 1 checksum entry for ${asset}, found ${matches}"
+            exit 1
+          fi
+          if ! grep -E "[[:space:]]${asset}$" checksums.txt | sha256sum --check --status; then
+            echo "::error::checksum verification failed for ${asset}"
+            exit 1
+          fi
+          echo "checksum OK: ${asset}"
+          cd - >/dev/null
+
+          tar -xzf "${RUNNER_TEMP}/${asset}" -C "${RUNNER_TEMP}/multica-cli"
+          install -m 0755 "${RUNNER_TEMP}/multica-cli/multica" "${HOME}/.local/bin/multica"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: Show CLI version under test
+        run: multica version
+
+      - name: Lint regression tests
+        run: scripts/test-lint.py
+
+      - name: Lint documented commands
+        run: |
+          if [ "${{ matrix.cli }}" = "min" ]; then
+            scripts/lint-skill-commands.py --verbose --validity-only
+          else
+            scripts/lint-skill-commands.py --verbose
+          fi
