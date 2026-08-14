@@ -117,6 +117,24 @@ def main() -> int:
         expect="has no command `frobnicate`",
     )
 
+    # 1c. Cobra also accepts global flags *before* the command. A boolean flag
+    #     consumes nothing, so the word after it is still a command that must
+    #     exist. Assuming every flag swallows the next token hid this.
+    for boolean_flag in ("--debug", "-h", "--help", "-v", "--version"):
+        check(
+            f"unknown top-level command after boolean {boolean_flag}",
+            run_case(linter, skill_body=block(f"multica {boolean_flag} frobnicate") + covered),
+            expect="has no command `frobnicate`",
+        )
+
+    # 1d. A value-taking global flag genuinely does consume the next token, so
+    #     that token must NOT be reported as a command.
+    check(
+        "value-taking global flag consumes its argument",
+        run_case(linter, skill_body=block("multica --profile dev issue list --output json") + covered),
+        expect=None,
+    )
+
     # 2. An unknown subcommand must be reported. Cobra prints the *parent's*
     #    help and exits 0 here, so exit status alone would miss it.
     check(

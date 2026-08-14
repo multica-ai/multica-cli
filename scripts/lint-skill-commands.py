@@ -39,10 +39,15 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 MIN_CLI_VERSION = "0.4.26"
 
 # Files that must state the minimum, so a reader learns it wherever they land.
+# Every file here is something a user can install *on its own* — the Cursor rule
+# is copied standalone into other projects, so it needs the boundary as much as
+# SKILL.md does.
 VERSION_DECLARED_IN = [
     "skills/multica-cli/SKILL.md",
     "README.md",
     "README.zh.md",
+    "CURSOR.md",
+    ".cursor/rules/multica-cli.mdc",
 ]
 
 # Files scanned for command examples. SKILL.md is the contract; the others are
@@ -70,9 +75,9 @@ UNDOCUMENTED_OK = {
 # Placeholder / shell noise that is never a real token.
 PLACEHOLDER = re.compile(r"^<.*>$|^\.{3}$|^N$")
 BARE_WORD = re.compile(r"^[a-z][a-z0-9-]*$")
-# A flag as *declared* by cobra: line starts with optional short form, then long.
-HELP_FLAG_DECL = re.compile(r"^\s+(?:-[A-Za-z],\s+)?(--[a-z0-9-]+)")
-HELP_SHORT_DECL = re.compile(r"^\s+(-[A-Za-z]),")
+# A flag as *declared* by cobra: line starts with optional short form, then long,
+# then an optional value type, then the description.
+HELP_FLAG_LINE = re.compile(r"^\s+(?:(-[A-Za-z]),\s+)?(--[a-z0-9-]+)(.*)$")
 # Subcommand as declared in a cobra COMMANDS block: "  name:  description".
 HELP_SUBCOMMAND = re.compile(r"^\s{2,}([a-z][a-z0-9-]*):\s")
 
@@ -126,15 +131,33 @@ def cli_help(path: str) -> str | None:
 
 def declared_flags(help_text: str) -> set[str]:
     """Flags cobra declares in this command's help, ignoring prose mentions."""
-    flags: set[str] = set()
+    return set(declared_flag_specs(help_text))
+
+
+def declared_flag_specs(help_text: str) -> dict[str, bool]:
+    """Map each declared flag to whether it consumes a following value.
+
+    Cobra prints the value type between the flag and the description, separated
+    from the description by a run of spaces:
+
+        --debug                 Print full error details      -> boolean
+        --profile string        Configuration profile name    -> takes a value
+
+    Boolean flags matter for parsing: `--debug frobnicate` does not make
+    `frobnicate` a flag value, it makes it a command that has to exist.
+    """
+    specs: dict[str, bool] = {}
     for line in help_text.splitlines():
-        m = HELP_FLAG_DECL.match(line)
-        if m:
-            flags.add(m.group(1))
-        m = HELP_SHORT_DECL.match(line)
-        if m:
-            flags.add(m.group(1))
-    return flags
+        m = HELP_FLAG_LINE.match(line)
+        if not m:
+            continue
+        short, long_flag, rest = m.groups()
+        # A single space then a type, then the gap before the description.
+        takes_value = bool(re.match(r"^ (\S.*?)\s{2,}", rest))
+        specs[long_flag] = takes_value
+        if short:
+            specs[short] = takes_value
+    return specs
 
 
 def declared_subcommands(help_text: str) -> set[str]:
@@ -198,11 +221,13 @@ def flag_name(token: str) -> str:
     return token.split("=", 1)[0]
 
 
-def stray_words(tokens: list[str]) -> list[str]:
+def stray_words(tokens: list[str], flag_specs: dict[str, bool]) -> list[str]:
     """Bare words in an invocation that named no command — i.e. a typo'd command.
 
     Flag *values* are not stray: in `multica --profile dev`, `dev` belongs to
-    `--profile`. Only words that stand on their own count.
+    `--profile`. But only flags that actually take a value swallow the next
+    token — assuming they all do lets `multica --debug frobnicate` hide a bad
+    command behind a boolean flag.
     """
     stray: list[str] = []
     skip_value = False
@@ -212,9 +237,12 @@ def stray_words(tokens: list[str]) -> list[str]:
             continue
         skip_value = False
         if tok.startswith("-"):
-            # Long flags may carry their value inline (`--profile=dev`).
+            # Long flags may carry their value inline (`--profile=dev`), and
+            # boolean flags never consume the following token at all. An
+            # unrecognised flag is reported separately; treat it as boolean so
+            # a following bad command is still surfaced.
             if "=" not in tok:
-                skip_value = True
+                skip_value = flag_specs.get(flag_name(tok), False)
             continue
         if BARE_WORD.match(tok) and not PLACEHOLDER.match(tok):
             stray.append(tok)
@@ -263,7 +291,8 @@ def check_validity(verbose: bool) -> list[str]:
     root_help = cli_help("")
     assert root_help is not None
     top_level = declared_subcommands(root_help)
-    global_flags = declared_flags(root_help)
+    global_flag_specs = declared_flag_specs(root_help)
+    global_flags = set(global_flag_specs)
 
     errors: list[str] = []
     checked = 0
@@ -285,7 +314,7 @@ def check_validity(verbose: bool) -> list[str]:
                 # top-level command that does not exist. Those must not be conflated:
                 # treating everything unresolved as root-level silently accepts
                 # `multica frobnicate`, which is the whole point of this check.
-                stray = stray_words(tokens)
+                stray = stray_words(tokens, global_flag_specs)
                 if stray:
                     errors.append(
                         f"{rel}:{lineno}: `multica` has no command `{stray[0]}`\n"
