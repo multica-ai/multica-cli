@@ -1,0 +1,38 @@
+name: Lint
+
+# A skill that describes a CLI is only correct relative to a CLI version, so the
+# schedule matters as much as the push trigger: the CLI can move under a
+# repository that never changes, and that is exactly how this skill went stale.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  skill-commands:
+    name: Docs match the CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the multica CLI
+        run: |
+          set -euo pipefail
+          version="$(curl -fsSL https://api.github.com/repos/multica-ai/multica/releases/latest | jq -r .tag_name)"
+          echo "Latest CLI release: ${version}"
+          asset="multica-cli-${version#v}-linux-amd64.tar.gz"
+          mkdir -p "${RUNNER_TEMP}/multica-cli" "${HOME}/.local/bin"
+          curl -fsSL -o "${RUNNER_TEMP}/multica.tar.gz" \
+            "https://github.com/multica-ai/multica/releases/download/${version}/${asset}"
+          tar -xzf "${RUNNER_TEMP}/multica.tar.gz" -C "${RUNNER_TEMP}/multica-cli"
+          install -m 0755 "${RUNNER_TEMP}/multica-cli/multica" "${HOME}/.local/bin/multica"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: Show CLI version under test
+        run: multica version
+
+      - name: Lint documented commands
+        run: scripts/lint-skill-commands.py --verbose

@@ -17,12 +17,17 @@ profile、当前 workspace，以及对每条命令的显式授权。这个 skill
 ## 覆盖范围
 
 - 检查 CLI 登录、profile、workspace 状态（以及如何登录）
-- 读取 issue、comment、metadata、project、agent、squad、runtime、repo、skill、
-  autopilot、attachment
-- 用 `--content-file` 安全地写 issue 评论
+- 读取 issue、comment、metadata、label、自定义 property、subscriber、project、
+  agent、squad、runtime、repo、skill、autopilot、attachment
+- 跨标题、描述与评论正文搜索 issue
+- 低成本地读评论历史 —— 线程扫描、`--compact`、已解决线程的折叠行为
+- 用 `--content-file` 安全地写 issue 评论，含文件参数的工作目录限制
 - 创建 / 更新 issue 和高价值 metadata
-- 处理 mention、status、assignment、rerun、子 issue 等副作用
+- 处理 mention、status、assignment、rerun、子 issue 等副作用，并用 `--no-start`
+  避免误触发 agent run
+- 查看 run 历史与 token 用量；在被要求时取消 run
 - 把 pull request 关联回 Multica issue
+- CLI 做不到的事直说，并指向 Multica Web，而不是假装已完成
 
 ## 安装
 
@@ -76,6 +81,19 @@ cp -R skills/multica-cli/* ~/.cursor/skills/multica-cli/
 
 对于写操作（评论、状态变更、mention、新建 issue），除非用户已经明确授权这个具体动作，
 否则 agent 应在改动状态前先确认。更多示例见 [EXAMPLES.md](./EXAMPLES.md)。
+
+## 参与开发
+
+这个 skill 只有在与它所描述的 CLI 保持一致时才有价值，所以文档会对着真实的
+`multica` 二进制做 lint：
+
+```bash
+scripts/lint-skill-commands.py            # 加 --verbose 可看到每一条检查
+```
+
+当文档里写的命令或 flag 已经不存在、或者 CLI 里有 `SKILL.md` 从未提及的命令时，
+lint 会失败。有意不写的部分请加进该脚本的 `UNDOCUMENTED_OK` 并注明原因。CI 在每次
+push 和每日定时任务中运行它，让漂移以失败的形式暴露出来，而不是变成一个过期的 skill。
 
 ## 许可证
 
