@@ -1,6 +1,6 @@
 ---
 name: multica-cli
-description: "Use when a local coding agent (Codex, Claude Code, Cursor, or similar) needs to operate Multica through the authenticated `multica` CLI: reading or updating issues, comments, metadata, labels, custom properties, subscribers, projects, agents, squads, runtimes, repos, skills, autopilots, attachments, or workspace state; searching issues; inspecting or cancelling agent runs; replying to a Multica issue from an external agent; creating or triaging issues; checking linked pull requests; or safely handling Multica mention/status side effects without relying on the Multica hosted agent runtime."
+description: "Use when a local coding agent (Codex, Claude Code, Cursor, or similar) needs to operate Multica through the authenticated `multica` CLI: reading or updating issues, comments, metadata, labels, custom properties, subscribers, projects, agents, squads, runtimes, repos, skills, autopilots, attachments, or workspace state; turning an open-ended business goal into a workflow; searching issues; inspecting or cancelling agent runs; replying to a Multica issue from an external agent; creating or triaging issues; checking linked pull requests; or safely handling Multica mention/status side effects without relying on the Multica hosted agent runtime."
 ---
 
 # Multica CLI
@@ -172,6 +172,14 @@ A bare number or an identifier-shaped query (`412`, `AGE-412`) matches the issue
 with that number, and the prefix is not validated — pasting an identifier from
 another tracker can put an unrelated local issue at the top. The `match_source`
 field is a display hint, not a filter.
+
+## Business Goal Orchestration
+
+For an open-ended business goal, resource-selection question, automation, or
+set of dependent writes, read `references/orchestration.md` before proposing a
+solution or changing state. Route by intent, not resource count. A concrete
+operation on a known target stays in the direct read/write workflow in this
+file.
 
 ## Write Workflow
 

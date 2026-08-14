@@ -54,6 +54,31 @@ multica issue assign <issue-id> --to-id <user-id>
 `issue create` refuses when an active duplicate already exists. Read that issue
 before reaching for `--allow-duplicate`.
 
+## Turn a business goal into an execution plan
+
+> Find the team's existing data-labeling workflow and capabilities, then plan
+> weekly rainy-day dataset labeling. Execute it after I confirm.
+
+The agent should inspect relevant existing resources, including Issue
+discussions where prior decisions may live, and synthesize what can be reused.
+It then presents the complete resource choices, capability gaps, mutations,
+dependencies, and acceptance criteria, and can execute it after one
+confirmation:
+
+```bash
+multica issue search "rainy data labeling" --include-closed --output json
+multica project list --output json
+multica agent list --output json
+multica skill list --output json
+multica autopilot list --output json
+```
+
+This is targeted discovery, not a full workspace dump. The agent gets details
+only for plausible matches, cites their identifiers in the proposal, prefers
+reuse when behavior need not change, and treats unknown sharing as shared. A
+material difference discovered during execution pauses the affected step for a
+revised confirmation.
+
 ## Record progress without starting another run
 
 > Mark MUL-123 in progress — I'm already working on it.

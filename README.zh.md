@@ -28,6 +28,11 @@ profile、当前 workspace，以及对每条命令的显式授权。这个 skill
 - 查看 run 历史与 token 用量；在被要求时取消 run
 - 把 pull request 关联回 Multica issue
 - CLI 做不到的事直说，并指向 Multica Web，而不是假装已完成
+- 针对开放式业务目标，定向检索 workspace 内相关资源并形成可执行方案
+- 归纳团队已有业务信息，匹配 Agent、Skill 等现有能力
+- 优先复用已有成果、避免重复建设，并根据共享风险决定是否新建隔离资源
+- 在聊天中展示完整业务编排方案，用户一次确认后按依赖顺序执行（Agent / Skill
+  变更仍需单独确认）
 
 ## 安装
 
@@ -80,6 +85,12 @@ cp -R skills/multica-cli/* ~/.cursor/skills/multica-cli/
 用 multica CLI 读一下 MUL-123，帮我起草一条回复让我 review。
 ```
 
+也可以直接描述业务目标，让 agent 先查找 workspace 内已有信息和能力：
+
+```text
+查找团队已有的数据送标流程和能力，设计每周雨天数据送标方案，等我确认后执行。
+```
+
 对于写操作（评论、状态变更、mention、新建 issue），除非用户已经明确授权这个具体动作，
 否则 agent 应在改动状态前先确认。更多示例见 [EXAMPLES.md](./EXAMPLES.md)。
 
@@ -90,6 +101,7 @@ cp -R skills/multica-cli/* ~/.cursor/skills/multica-cli/
 
 ```bash
 scripts/lint-skill-commands.py            # 加 --verbose 可看到每一条检查
+python3 scripts/test-orchestration-contract.py
 ```
 
 当文档里写的命令或 flag 已经不存在、或者 CLI 里有 `SKILL.md` 从未提及的命令时，
