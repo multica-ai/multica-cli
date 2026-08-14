@@ -91,12 +91,15 @@ Read PR state from Multica rather than guessing from GitHub search or metadata.
 
 These are not cosmetic — confirm with the user before running them:
 
-- Posting a comment that `@mentions` an agent or squad (it enqueues a run).
+- Posting a comment that mentions an agent or squad (it enqueues a run and costs
+  money), a member (it notifies a person), or `@all` (it notifies everyone).
 - Changing status (`todo`/`backlog`/`done` can enqueue or stop work).
 - Assigning, rerunning, or creating sub-issues.
 - `multica issue cancel-task` — it interrupts a running agent, losing in-flight work.
-- Label, property, and subscriber changes; anything under `agent`, `skill`, or
-  `autopilot`.
+- Label, property, and subscriber changes.
+- Anything that *writes* under `agent`, `skill`, `squad`, or `autopilot` — creating,
+  updating, archiving, importing, or rotating a webhook URL. Read-only `list` and
+  `get` calls in those namespaces need no confirmation.
 
 See [`skills/multica-cli/SKILL.md`](skills/multica-cli/SKILL.md) for the full
 command reference and safety rules.

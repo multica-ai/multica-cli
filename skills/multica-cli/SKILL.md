@@ -20,6 +20,13 @@ multica auth status
 multica config show
 ```
 
+**This skill requires `multica` v0.4.26 or newer.** Several commands it relies
+on — notably `--no-start` on `issue status` / `assign` / `update` — do not exist
+in earlier versions, and an older CLI will reject them outright. If
+`multica version` reports anything below 0.4.26, stop and ask the user to
+upgrade (`brew upgrade multica-ai/tap/multica`, or `multica update`) rather than
+working around the missing flags.
+
 If `multica auth status` reports no active session, the CLI is not logged in.
 Stop and have the user authenticate; do not try to fake credentials:
 
@@ -75,7 +82,8 @@ multica issue status <id> <status> [--no-start]
 multica issue assign <id> --to <name> | --to-id <uuid> | --unassign [--no-start]
 
 # Comment (write) — body always via file, see Write Workflow below
-multica issue comment add <id> --parent <comment-id> --content-file <path> [--attachment <path>]
+# --parent is required when a comment triggered your task; see Issue Comments
+multica issue comment add <id> [--parent <comment-id>] --content-file <path> [--attachment <path>]
 
 # Metadata
 multica issue metadata set <id> --key <k> --value <v> [--type string|number|bool]
@@ -202,9 +210,13 @@ multica issue comment add <issue-id> --parent <comment-id> --content-file ./repl
 rm ./reply.md
 ```
 
-`--parent` is not optional for a comment-triggered agent task — the server
-rejects a top-level comment from one. Keep the same `--parent` value as the
-comment being answered. Do not write literal `\n` escapes to fake line breaks.
+`--parent` is conditional, not universal. When a comment triggered your task it
+is **required** — the server rejects a top-level comment from such a task — and
+its value must be the comment you are answering. When you are starting a new
+top-level discussion on an issue, omit it. Never attach a reply to an unrelated
+thread just to satisfy the flag.
+
+Do not write literal `\n` escapes to fake line breaks.
 
 ### Issues and Metadata
 
@@ -257,14 +269,15 @@ Mention links are actions, not decoration:
 ```text
 [@Name](mention://agent/<agent-id>)     # enqueues that agent
 [@Name](mention://squad/<squad-id>)     # enqueues the squad leader
-[@Name](mention://member/<user-id>)     # renders a person link
+[@Name](mention://member/<user-id>)     # NOTIFIES that person
+[@all](mention://all/all)               # broadcasts to the workspace
 [MUL-123](mention://issue/<issue-id>)   # renders an issue link
 [Name](mention://project/<project-id>)  # renders a project link
-[@all](mention://all/all)               # broadcast, no specific agent run
 ```
 
-Only `agent` and `squad` mentions enqueue agent work. `member`, `issue`, and
-`project` mentions are links.
+Three of these reach someone. `agent` and `squad` enqueue agent work that costs
+money; `member` notifies a human, and `@all` notifies the whole workspace. Only
+`issue` and `project` are inert links you can use freely.
 
 Look up real UUIDs with JSON output before constructing mentions:
 
@@ -275,7 +288,8 @@ multica workspace member list --output json
 ```
 
 Do not mention an agent just to thank, acknowledge, or sign off. Re-mentioning
-an agent in a reply can trigger another run and create loops.
+an agent in a reply can trigger another run and create loops. The same restraint
+applies to people: mention a member when they need to act, not to be polite.
 
 ## Status and Assignment Side Effects
 

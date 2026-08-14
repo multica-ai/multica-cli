@@ -32,6 +32,19 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# The oldest CLI every documented command works on. Raising this is a real
+# compatibility decision — the docs tell users to upgrade to it, so CI lints
+# against this version as well as the newest one. `--no-start` is what pins it
+# to 0.4.26; it does not exist in 0.4.25.
+MIN_CLI_VERSION = "0.4.26"
+
+# Files that must state the minimum, so a reader learns it wherever they land.
+VERSION_DECLARED_IN = [
+    "skills/multica-cli/SKILL.md",
+    "README.md",
+    "README.zh.md",
+]
+
 # Files scanned for command examples. SKILL.md is the contract; the others are
 # docs that get copy-pasted just as often, so they rot the same way.
 DOC_FILES = [
@@ -180,6 +193,34 @@ def normalize(line: str) -> list[str]:
         return line.split()
 
 
+def flag_name(token: str) -> str:
+    """`--profile=dev` and `--profile dev` name the same flag."""
+    return token.split("=", 1)[0]
+
+
+def stray_words(tokens: list[str]) -> list[str]:
+    """Bare words in an invocation that named no command — i.e. a typo'd command.
+
+    Flag *values* are not stray: in `multica --profile dev`, `dev` belongs to
+    `--profile`. Only words that stand on their own count.
+    """
+    stray: list[str] = []
+    skip_value = False
+    for tok in tokens[1:]:
+        if skip_value and not tok.startswith("-"):
+            skip_value = False
+            continue
+        skip_value = False
+        if tok.startswith("-"):
+            # Long flags may carry their value inline (`--profile=dev`).
+            if "=" not in tok:
+                skip_value = True
+            continue
+        if BARE_WORD.match(tok) and not PLACEHOLDER.match(tok):
+            stray.append(tok)
+    return stray
+
+
 def resolve_path(tokens: list[str], top_level: set[str]) -> tuple[str, list[str], str | None] | None:
     """Split tokens into a valid command path, its flags, and a bad subcommand.
 
@@ -240,10 +281,20 @@ def check_validity(verbose: bool) -> list[str]:
 
             resolved = resolve_path(tokens, top_level)
             if resolved is None:
-                # Root-level invocation such as `multica --version`.
-                bad = [f for f in tokens if f.startswith("-") and f not in global_flags]
+                # Either a root-level invocation such as `multica --version`, or a
+                # top-level command that does not exist. Those must not be conflated:
+                # treating everything unresolved as root-level silently accepts
+                # `multica frobnicate`, which is the whole point of this check.
+                stray = stray_words(tokens)
+                if stray:
+                    errors.append(
+                        f"{rel}:{lineno}: `multica` has no command `{stray[0]}`\n"
+                        f"    in: {line}"
+                    )
+                bad = [f for f in tokens if f.startswith("-") and flag_name(f) not in global_flags]
                 if bad:
-                    errors.append(f"{rel}:{lineno}: unknown command or flags {bad} in: {line}")
+                    errors.append(f"{rel}:{lineno}: unknown global flag(s) {bad} in: {line}")
+                checked += 1
                 continue
 
             cmd_path, flags, bad_sub = resolved
@@ -258,7 +309,7 @@ def check_validity(verbose: bool) -> list[str]:
                     f"    in: {line}"
                 )
 
-            unknown = [f for f in flags if f not in allowed]
+            unknown = [f for f in flags if flag_name(f) not in allowed]
             if unknown:
                 errors.append(
                     f"{rel}:{lineno}: `multica {cmd_path}` does not accept {', '.join(unknown)}\n"
@@ -305,9 +356,36 @@ def check_coverage(verbose: bool) -> list[str]:
     return errors
 
 
+def check_declared_version(verbose: bool) -> list[str]:
+    """The docs must name the minimum CLI version, and name the same one."""
+    errors: list[str] = []
+    for rel in VERSION_DECLARED_IN:
+        path = REPO_ROOT / rel
+        if not path.exists():
+            errors.append(f"{rel}: listed in VERSION_DECLARED_IN but missing from the repo")
+            continue
+        if MIN_CLI_VERSION not in path.read_text(encoding="utf-8"):
+            errors.append(
+                f"{rel}: does not state the minimum CLI version ({MIN_CLI_VERSION}).\n"
+                f"    Every documented command must work on that version, and the reader has to be told."
+            )
+        elif verbose:
+            print(f"  ok  {rel} declares {MIN_CLI_VERSION}")
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--verbose", action="store_true", help="print every command as it is checked")
+    parser.add_argument(
+        "--validity-only",
+        action="store_true",
+        help=(
+            "skip the coverage check. Use when linting against the declared minimum "
+            "CLI: 'is everything documented?' is a question about the newest CLI, and "
+            "an exemption for a command that version predates is not a stale exemption."
+        ),
+    )
     args = parser.parse_args()
 
     if shutil.which("multica") is None:
@@ -322,8 +400,13 @@ def main() -> int:
 
     try:
         version = subprocess.run(["multica", "version"], capture_output=True, text=True, timeout=30).stdout.strip()
-        print(f"Linting docs against: {version.splitlines()[0] if version else 'multica (unknown version)'}\n")
-        errors = check_validity(args.verbose) + check_coverage(args.verbose)
+        print(f"Linting docs against: {version.splitlines()[0] if version else 'multica (unknown version)'}")
+        print(f"Declared minimum:     v{MIN_CLI_VERSION}\n")
+        errors = check_declared_version(args.verbose) + check_validity(args.verbose)
+        if args.validity_only:
+            print("\n(coverage check skipped: --validity-only)")
+        else:
+            errors += check_coverage(args.verbose)
     except CliMissing:
         print("error: `multica` disappeared from PATH mid-run", file=sys.stderr)
         return 2
