@@ -70,8 +70,8 @@ your tool loads skills or instructions from.
 
 ## Requirements
 
-- The `multica` CLI is installed locally, at **v0.4.26 or newer**. Earlier
-  versions lack commands the skill relies on (notably `--no-start`), and will
+- The `multica` CLI is installed locally, at **v0.6.0 or newer**. Earlier
+  versions lack commands the skill relies on (notably `issue wakeup` and `--no-start`), and will
   reject them. Check with `multica version`.
 - The user has run `multica login` (or `multica setup`) to authenticate.
 - The intended workspace/profile is selected, or passed explicitly with

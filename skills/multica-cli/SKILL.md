@@ -20,12 +20,22 @@ multica auth status
 multica config show
 ```
 
-**This skill requires `multica` v0.4.26 or newer.** Several commands it relies
-on — notably `--no-start` on `issue status` / `assign` / `update` — do not exist
+**This skill requires `multica` v0.6.0 or newer.** Several commands it relies
+on — notably `issue wakeup`, and `--no-start` on `issue status` / `assign` /
+`update` — do not exist
 in earlier versions, and an older CLI will reject them outright. If
-`multica version` reports anything below 0.4.26, stop and ask the user to
+`multica version` reports anything below 0.6.0, stop and ask the user to
 upgrade (`brew upgrade multica-ai/tap/multica`, or `multica update`) rather than
 working around the missing flags.
+
+**This file was last checked against `multica` v0.6.2.** The CLI ships faster
+than this skill. When `multica version` reports a newer version, assume
+commands or flags exist that this file does not describe: treat
+`multica <command> --help` as the source of truth, and check `multica --help`
+and `multica issue --help` before telling the user the CLI cannot do something.
+If this skill sits inside a checkout or plugin install of its repository,
+`scripts/lint-skill-commands.py` (two directories above this file) lists the
+drift in under a second; it only runs `--help`.
 
 If `multica auth status` reports no active session, the CLI is not logged in.
 Stop and have the user authenticate; do not try to fake credentials:
@@ -65,6 +75,7 @@ multica issue search <query> [--include-closed] [--limit N] --output json
 multica issue children <id> --output json
 multica issue pull-requests <id> --output json
 multica issue metadata list <id> --output json
+multica issue timeline <id> [--activity-only] [--action <a,...>] [--since <RFC3339>] [--tail N] --output json
 
 # Comments (read) — see Reading Comments below before picking a mode
 multica issue comment list <id> --roots-only --summary --compact --output json   # scan threads cheaply
@@ -112,6 +123,15 @@ multica issue run-messages <task-id> [--issue <issue-id>] [--since N] --output j
 multica issue usage <issue-id> --output json
 multica issue rerun <id> --output json
 multica issue cancel-task <task-id> [--issue <issue-id>]
+
+# Wakeups — rules that start agent runs later; see Wakeups below
+multica issue wakeup list <issue-id> --output json
+multica issue wakeup get <issue-id> <wakeup-id> --output json
+multica issue wakeup runs <issue-id> <wakeup-id> --output json
+multica issue wakeup events
+multica issue wakeup create <issue-id> (--event <type> | --until-status <s> | --kind at --after 10m | --kind every --every 1h | --kind cron --cron "<expr>") [--agent-id <uuid>] [--instruction-file <path>] [--expires-in 72h] [--max-fires N] [--parent <comment-id>]
+multica issue wakeup disable <issue-id> <wakeup-id>
+multica issue wakeup delete <issue-id> <wakeup-id>
 ```
 
 Note `issue assign` uses `--to` / `--to-id`, while `issue create` / `issue
@@ -321,7 +341,12 @@ instead of guessing from comments.
 multica issue runs <issue-id> --output json                       # what ran, and how it ended
 multica issue run-messages <task-id> --issue <issue-id> --output json  # what that run actually did
 multica issue usage <issue-id> --output json                      # aggregated token cost
+multica issue timeline <issue-id> --activity-only --output json   # status/assignee changes and run outcomes, oldest first
 ```
+
+`issue get` is the current state; `issue timeline` explains how the issue got
+there. A status change writes an activity record, never a comment, so "when did
+this move to in_review?" is answered by the timeline, not the comment list.
 
 `--issue` lets you pass a short task-id prefix instead of the full UUID.
 
@@ -334,6 +359,23 @@ multica issue cancel-task <task-id> --issue <issue-id>   # interrupt a running a
 
 `cancel-task` interrupts an in-flight agent, so work in progress is lost. Never
 run it to "clean up" state you have not read.
+
+## Wakeups
+
+A wakeup is a rule on an issue that starts an ordinary agent run later: on an
+event (`--event`, see `multica issue wakeup events`), when a condition holds
+(`--until-status`, `--until-children-done`, `--until-pr`, ...), or on a timer
+(`--kind at|every|cron`). Every fire is a paid run, so creating, triggering or
+re-enabling one is a write that needs the user's approval.
+
+- Read before you write: `multica issue wakeup list <issue-id> --output json`.
+- Bound every repeating or waiting rule with `--expires-in` / `--expires-at` or
+  `--max-fires`; an unbounded `every` rule is a standing cost.
+- `create` replaces the complete configuration of that rule, it does not merge.
+- `multica issue wakeup checkin` is only for a run that an `every` or `cron`
+  wakeup started and that found nothing to report; it ends the run silently.
+- To stop a rule, `disable` keeps it for later; `delete` also withdraws runs
+  that have not started.
 
 ## Pull Requests
 

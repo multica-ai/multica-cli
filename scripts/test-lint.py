@@ -50,8 +50,9 @@ def run_case(linter, *, skill_body: str, undocumented_ok: dict[str, str] | None 
         linter.DOC_FILES = [skill_rel]
         linter.COVERAGE_FILE = skill_rel
         linter.VERSION_DECLARED_IN = []
-        if undocumented_ok is not None:
-            linter.UNDOCUMENTED_OK = undocumented_ok
+        # Never inherit the real allowlist: when the CLI drops a command it
+        # exempts, every fixture would fail as "stale" and mask the drift report.
+        linter.UNDOCUMENTED_OK = undocumented_ok or {}
         try:
             return linter.check_validity(False) + linter.check_coverage(False)
         finally:
