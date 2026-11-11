@@ -68,7 +68,6 @@ COVERAGE_FILE = "skills/multica-cli/SKILL.md"
 UNDOCUMENTED_OK = {
     "daemon": "runtime host concern, not an agent operation",
     "update": "CLI self-update, belongs in install docs",
-    "plugin": "workspace-private plugin authoring, out of scope for issue work",
     "issue reorder": "board cosmetics; no agent workflow needs it",
 }
 
