@@ -117,7 +117,9 @@ multica issue subscriber remove <issue-id> [--user <name> | --user-id <uuid>]
 multica issue runs <issue-id> [--active] [--siblings] --output json
 multica issue run-messages <task-id> [--issue <issue-id>] [--since N] --output json
 multica issue usage <issue-id> --output json
-multica issue rerun <id> --output json
+multica issue rerun-task <run-id> [--issue <issue-id>] --output json   # 'rerun' still works but is deprecated
+multica issue timeline <issue-id> --output json   # how the issue got here, not just its current state
+multica issue wakeup --help                       # scheduled/event wakeups that start runs
 multica issue cancel-task <task-id> [--issue <issue-id>]
 ```
 
@@ -139,6 +141,9 @@ multica label --help
 multica property --help
 multica chat --help
 multica user --help
+multica workflow --help
+multica issue-status --help
+multica view --help
 ```
 
 ## Reading Comments
@@ -369,7 +374,7 @@ reports work in flight, it does not reserve anything.
 Two controls are genuinely disruptive — confirm both with the user first:
 
 ```bash
-multica issue rerun <id> --output json          # re-enqueue the current assignment as a new task
+multica issue rerun-task <run-id> --output json  # repeat one exact run with its original agent and trigger context
 multica issue cancel-task <task-id> --issue <issue-id>   # interrupt a running agent mid-flight
 ```
 
