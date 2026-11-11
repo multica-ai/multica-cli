@@ -1,6 +1,6 @@
 ---
 name: multica-cli
-description: "Use when a local coding agent (Codex, Claude Code, Cursor, or similar) needs to operate Multica through the authenticated `multica` CLI: reading or updating issues, comments, metadata, labels, custom properties, subscribers, projects, agents, squads, runtimes, repos, skills, autopilots, attachments, or workspace state; searching issues; inspecting or cancelling agent runs; replying to a Multica issue from an external agent; creating or triaging issues; checking linked pull requests; or safely handling Multica mention/status side effects without relying on the Multica hosted agent runtime."
+description: "Use when a local coding agent (Codex, Claude Code, Cursor, or similar) needs to operate Multica through the authenticated `multica` CLI: reading or updating issues, comments, metadata, labels, custom properties, subscribers, projects, agents, squads, runtimes, repos, skills, autopilots, attachments, or workspace state; searching issues; inspecting, cancelling, or steering agent runs; replying to a Multica issue from an external agent; creating or triaging issues; checking linked pull requests; or safely handling Multica mention/status side effects without relying on the Multica hosted agent runtime."
 ---
 
 # Multica CLI
@@ -44,6 +44,12 @@ multica workspace switch <workspace-id>              # set the default for this 
 multica --profile <profile> --workspace-id <workspace-id> issue list --output json
 ```
 
+When the agent acts for the user long-term, a dedicated assistant member
+account is worth recommending: comments are attributable to "the user's
+assistant" instead of the user, the PAT is revocable on its own, and a
+separate `--profile` keeps its stored session from clobbering the user's own
+login on a shared machine.
+
 3. Prefer `--output json` whenever a command supports it. Parse JSON rather than
 scraping tables.
 
@@ -83,7 +89,8 @@ multica issue assign <id> --to <name> | --to-id <uuid> | --unassign [--no-start]
 
 # Comment (write) — body always via file, see Write Workflow below
 # --parent is required when a comment triggered your task; see Issue Comments
-multica issue comment add <id> [--parent <comment-id>] --content-file <path> [--attachment <path>]
+# --steer / --steer-active redirect a busy agent's current run; see Steering
+multica issue comment add <id> [--parent <comment-id>] --content-file <path> [--attachment <path>] [--steer <run-id>] [--steer-active]
 
 # Metadata
 multica issue metadata set <id> --key <k> --value <v> [--type string|number|bool]
@@ -107,7 +114,7 @@ multica issue subscriber add <issue-id> [--user <name> | --user-id <uuid>]
 multica issue subscriber remove <issue-id> [--user <name> | --user-id <uuid>]
 
 # Runs — see Inspecting Runs below
-multica issue runs <issue-id> --output json
+multica issue runs <issue-id> [--active] [--siblings] --output json
 multica issue run-messages <task-id> [--issue <issue-id>] [--since N] --output json
 multica issue usage <issue-id> --output json
 multica issue rerun <id> --output json
@@ -262,6 +269,33 @@ multica issue update <id> --status in_review --no-start
 Rule of thumb: handing fresh work to someone → omit it; writing down what is
 already happening → pass `--no-start`.
 
+## Steering a Running Agent
+
+A plain comment reaches a busy agent only after its current run ends. When the
+user wants to redirect an agent mid-run ("also handle X", "stop using approach
+Y"), deliver the comment into the running turn instead of queueing a new one:
+
+```bash
+multica issue runs <issue-id> --active --output json    # find in-flight runs; can_supplement marks steerable ones
+multica issue comment add <issue-id> --content-file ./steer.md --steer <run-id>
+multica issue comment add <issue-id> --content-file ./steer.md --steer-active
+```
+
+- `--steer <run-id>` (repeatable) targets exact runs; `--steer-active` covers
+  every running agent on the issue you may steer.
+- You may steer a run exactly when your comment could have started that agent.
+  A run that has ended, or cannot take more input (`can_supplement: false`),
+  falls back to the normal comment trigger — the command reports per run
+  whether it was steered, queued, coalesced, deferred, or blocked. Read that
+  output; do not assume delivery.
+- One agent can add at most 3 steered messages to a run (10 across all agents).
+  If the steered run ends before reading the message, it is handled in a
+  follow-up run.
+- Steering is still a write — confirm with the user first, same as any comment
+  that mentions an agent.
+- If the CLI rejects `--steer`, it predates the flag: ask the user to upgrade
+  rather than falling back to a mention-triggered run.
+
 ## Mention Side Effects
 
 Mention links are actions, not decoration:
@@ -319,9 +353,16 @@ instead of guessing from comments.
 
 ```bash
 multica issue runs <issue-id> --output json                       # what ran, and how it ended
+multica issue runs <issue-id> --active --output json              # is an agent working on it right now
 multica issue run-messages <task-id> --issue <issue-id> --output json  # what that run actually did
 multica issue usage <issue-id> --output json                      # aggregated token cost
 ```
+
+`--active` answers "is someone on it now" without pulling every past run.
+`--siblings` widens `--active` across the sub-issue family (parent plus every
+child of that parent) so you can see whether another agent is already working
+next to you before starting overlapping code or PR work. It is advisory — it
+reports work in flight, it does not reserve anything.
 
 `--issue` lets you pass a short task-id prefix instead of the full UUID.
 
