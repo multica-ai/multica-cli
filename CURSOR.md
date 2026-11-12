@@ -2,7 +2,7 @@
 
 There are two ways to use the Multica CLI skill in Cursor.
 
-Both require the `multica` CLI at **v0.4.26 or newer** — earlier versions lack
+Both require the `multica` CLI at **v0.8.1 or newer** — earlier versions lack
 commands the skill and the rule rely on (notably `--no-start`). Check with
 `multica version`.
 
