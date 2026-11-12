@@ -34,11 +34,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # The oldest CLI every documented command works on. Raising this is a real
 # compatibility decision — the docs tell users to upgrade to it, so CI lints
-# against this version as well as the newest one. v0.6.0 is what pins it now:
-# timeline, wakeup, workflow, issue-status, view, rerun-task, and the
-# steering flags (--steer / --steer-active, issue runs --active/--siblings)
-# do not exist in 0.4.x.
-MIN_CLI_VERSION = "0.6.0"
+# against this version as well as the newest one. v0.8.1 is what pins it now:
+# steering (--steer / --steer-active), issue runs --active/--siblings,
+# rerun-task, timeline, wakeup, view, and workflow all postdate 0.7.x.
+MIN_CLI_VERSION = "0.8.1"
 
 # Files that must state the minimum, so a reader learns it wherever they land.
 # Every file here is something a user can install *on its own* — the Cursor rule
@@ -71,6 +70,7 @@ UNDOCUMENTED_OK = {
     "daemon": "runtime host concern, not an agent operation",
     "update": "CLI self-update, belongs in install docs",
     "issue reorder": "board cosmetics; no agent workflow needs it",
+    "issue-status": "added in v0.8.2, newer than the documented floor; document when MIN_CLI_VERSION catches up",
 }
 
 # Placeholder / shell noise that is never a real token.

@@ -70,7 +70,7 @@ your tool loads skills or instructions from.
 
 ## Requirements
 
-- The `multica` CLI is installed locally, at **v0.4.26 or newer**. Earlier
+- The `multica` CLI is installed locally, at **v0.8.1 or newer**. Earlier
   versions lack commands the skill relies on (notably `--no-start`), and will
   reject them. Check with `multica version`.
 - The user has run `multica login` (or `multica setup`) to authenticate.
