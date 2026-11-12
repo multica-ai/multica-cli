@@ -50,8 +50,10 @@ def run_case(linter, *, skill_body: str, undocumented_ok: dict[str, str] | None 
         linter.DOC_FILES = [skill_rel]
         linter.COVERAGE_FILE = skill_rel
         linter.VERSION_DECLARED_IN = []
-        if undocumented_ok is not None:
-            linter.UNDOCUMENTED_OK = undocumented_ok
+        # Fixtures assert on their own body; isolate them from the repo's real
+        # allowlist, whose entries describe the *latest* CLI and would fire the
+        # stale-entry check when the tests run against an older floor binary.
+        linter.UNDOCUMENTED_OK = undocumented_ok if undocumented_ok is not None else {}
         try:
             return linter.check_validity(False) + linter.check_coverage(False)
         finally:
