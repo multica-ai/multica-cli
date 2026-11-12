@@ -34,9 +34,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # The oldest CLI every documented command works on. Raising this is a real
 # compatibility decision — the docs tell users to upgrade to it, so CI lints
-# against this version as well as the newest one. `--no-start` is what pins it
-# to 0.4.26; it does not exist in 0.4.25.
-MIN_CLI_VERSION = "0.4.26"
+# against this version as well as the newest one. v0.6.0 is what pins it now:
+# timeline, wakeup, workflow, issue-status, view, rerun-task, and the
+# steering flags (--steer / --steer-active, issue runs --active/--siblings)
+# do not exist in 0.4.x.
+MIN_CLI_VERSION = "0.6.0"
 
 # Files that must state the minimum, so a reader learns it wherever they land.
 # Every file here is something a user can install *on its own* — the Cursor rule

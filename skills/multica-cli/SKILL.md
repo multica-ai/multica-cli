@@ -20,10 +20,11 @@ multica auth status
 multica config show
 ```
 
-**This skill requires `multica` v0.4.26 or newer.** Several commands it relies
-on — notably `--no-start` on `issue status` / `assign` / `update` — do not exist
-in earlier versions, and an older CLI will reject them outright. If
-`multica version` reports anything below 0.4.26, stop and ask the user to
+**This skill requires `multica` v0.6.0 or newer.** Several commands it relies
+on — steering (`--steer` / `--steer-active`), run filters (`issue runs
+--active` / `--siblings`), `rerun-task`, `timeline`, and `wakeup` — do not
+exist in earlier versions, and an older CLI will reject them outright. If
+`multica version` reports anything below 0.6.0, stop and ask the user to
 upgrade (`brew upgrade multica-ai/tap/multica`, or `multica update`) rather than
 working around the missing flags.
 
