@@ -117,6 +117,13 @@ multica issue cancel-task <task-id> [--issue <issue-id>]
 Note `issue assign` uses `--to` / `--to-id`, while `issue create` / `issue
 update` use `--assignee` / `--assignee-id`.
 
+`autopilot create` / `autopilot update` take the assignee as `--agent`, or, to
+assign a squad (the run goes to its leader), `--squad` (name or ID) /
+`--squad-id` (UUID). The three are mutually exclusive. On `update` any of them
+retargets the autopilot — `--agent` moves a squad autopilot back to one agent —
+so leave them out to keep the current assignee. Older CLIs have no squad flags;
+confirm with `multica autopilot create --help` before using them.
+
 Other namespaces follow the same shape; inspect them when the task needs them:
 
 ```bash
